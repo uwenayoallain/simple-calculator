@@ -23,6 +23,25 @@ html, body, #root { height: 100%; margin: 0 }
   place-items: center;
   transition: background 200ms ease, color 120ms ease;
   position: relative;
+  font-family: 'Inter', 'Space Grotesk', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.qc-main {
+  width: min(820px, 92vw);
+  padding: 60px 16px 120px;
+  text-align: center;
+}
+
+.qc-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 /* subtle grain/noise overlay */
@@ -56,7 +75,7 @@ html, body, #root { height: 100%; margin: 0 }
 
 .qc-input {
   width: 100%;
-  font: 600 28px/1.2 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Inter, Helvetica, Arial;
+  font: 600 28px/1.2 'Space Grotesk', 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial;
   color: var(--qc-fg);
   background: transparent;
   border: none;
@@ -79,7 +98,7 @@ html, body, #root { height: 100%; margin: 0 }
 }
 
 .qc-result-value {
-  font: 700 40px/1.15 ui-sans-serif, Inter, system-ui;
+  font: 700 40px/1.15 'Space Grotesk', 'Inter', ui-sans-serif, system-ui;
   letter-spacing: -0.01em;
   background: linear-gradient(var(--qc-accent-angle), var(--qc-accent), var(--qc-accent-2));
   -webkit-background-clip: text;
@@ -91,9 +110,21 @@ html, body, #root { height: 100%; margin: 0 }
   text-overflow: ellipsis;
 }
 
-.qc-result-sub, .qc-result-hint { color: var(--qc-muted); margin-top: 4px; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.qc-result-sub, .qc-result-hint {
+  color: var(--qc-muted);
+  margin-top: 4px;
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-family: 'Inter', ui-sans-serif, system-ui;
+}
 
-.qc-result-error { color: var(--qc-error); font-weight: 600 }
+.qc-result-error {
+  color: var(--qc-error);
+  font-weight: 600;
+  font-family: 'Inter', ui-sans-serif, system-ui;
+}
 
 .qc-muted { opacity: 0.8 }
 
@@ -106,6 +137,7 @@ html, body, #root { height: 100%; margin: 0 }
   padding: 6px 10px;
   border-radius: 999px;
   font-size: 12px;
+  font-family: 'Inter', ui-sans-serif, system-ui;
   opacity: 0; transform: translateY(-6px);
   transition: opacity 140ms ease, transform 160ms ease;
 }
@@ -116,8 +148,34 @@ html, body, #root { height: 100%; margin: 0 }
   bottom: 14px;
   left: 50%;
   transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0;
   color: var(--qc-muted);
-  font-size: 12px;
+  font-size: 16px;
+  letter-spacing: 0.04em;
+  font-family: 'Jersey 25', cursive;
+}
+
+.qc-footer-handle {
+  color: var(--qc-fg);
+  font-size: 20px;
+}
+
+.qc-footer span[aria-hidden="true"] {
+  color: var(--qc-muted);
+  font-size: 18px;
+}
+
+.qc-footer-link {
+  color: var(--qc-accent);
+  text-decoration: none;
+  font-size: 20px;
+}
+.qc-footer-link:hover,
+.qc-footer-link:focus-visible {
+  text-decoration: underline;
 }
 
 /* Theme selector */
@@ -133,8 +191,10 @@ html, body, #root { height: 100%; margin: 0 }
   border: 1px solid var(--qc-border);
   padding: 6px 12px;
   border-radius: 10px;
-  font-size: 12px;
-  font-weight: 700;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: 'Space Grotesk', 'Inter', ui-sans-serif, system-ui;
+  letter-spacing: 0.04em;
   backdrop-filter: blur(10px);
   cursor: pointer;
 }
@@ -157,28 +217,86 @@ html, body, #root { height: 100%; margin: 0 }
   box-shadow: 0 30px 80px rgba(0,0,0,0.45);
   z-index: 1;
 }
-.qc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px }
+
+.qc-picker-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 16px;
+}
+
+.qc-picker-title {
+  font-size: 16px;
+  font-weight: 700;
+  margin: 0;
+  font-family: 'Space Grotesk', 'Inter', ui-sans-serif, system-ui;
+  letter-spacing: 0.04em;
+}
+
+.qc-picker-sub {
+  margin: 0;
+  color: var(--qc-muted);
+  font-size: 13px;
+  font-family: 'Inter', ui-sans-serif, system-ui;
+}
+
+.qc-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 12px;
+}
+.qc-grid > li { list-style: none }
+
 .qc-card {
   position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
   border-radius: 12px;
   border: 1px solid var(--qc-border);
   overflow: hidden;
   cursor: pointer;
   background: rgba(255,255,255,0.06);
   transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease;
+  outline: none;
 }
+.qc-card:focus-visible { box-shadow: 0 0 0 2px var(--qc-accent); border-color: var(--qc-accent); transform: translateY(-2px) }
 .qc-card:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(0,0,0,0.35) }
 .qc-card.selected { box-shadow: 0 0 0 2px rgba(255,255,255,0.16) inset, 0 10px 30px rgba(0,0,0,0.35) }
 .qc-card-inner { padding: 10px; }
 .qc-swatch-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 8px }
 .qc-swatch { height: 12px; border-radius: 6px }
-.qc-card-title { font-size: 12px; font-weight: 700; color: var(--qc-fg) }
-.qc-card-sub { font-size: 11px; color: var(--qc-muted) }
+.qc-card-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--qc-fg);
+  font-family: 'Space Grotesk', 'Inter', ui-sans-serif, system-ui;
+}
+.qc-card-sub {
+  font-size: 11px;
+  color: var(--qc-muted);
+  font-family: 'Inter', ui-sans-serif, system-ui;
+}
 
 /* Mini preview of the calc inside the card */
 .qc-mini { background: var(--qc-surface); border: 1px solid var(--qc-border); border-radius: 10px; padding: 8px; margin-bottom: 8px }
-.qc-mini-input { color: var(--qc-muted); font: 600 12px/1.2 ui-sans-serif, Inter; border-bottom: 1px dashed var(--qc-border); padding-bottom: 6px; margin-bottom: 6px }
-.qc-mini-result { font: 800 18px/1.1 ui-sans-serif, Inter; letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.qc-mini-input {
+  color: var(--qc-muted);
+  font: 600 12px/1.2 'Inter', ui-sans-serif, system-ui;
+  border-bottom: 1px dashed var(--qc-border);
+  padding-bottom: 6px;
+  margin-bottom: 6px;
+}
+.qc-mini-result {
+  font: 800 18px/1.1 'Space Grotesk', 'Inter', ui-sans-serif, system-ui;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 
 /* THEME DEFINITIONS */
 .qc-root[data-theme='dark'] {

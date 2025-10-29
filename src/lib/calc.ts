@@ -30,6 +30,9 @@ const CONSTANTS = {
   e: Math.E,
 }
 
+const hasOwn = <T extends object>(obj: T, key: PropertyKey): key is keyof T =>
+  Object.prototype.hasOwnProperty.call(obj, key)
+
 const isDigit = (c: string) => c >= '0' && c <= '9'
 const isLetter = (c: string) => /[a-z]/i.test(c)
 const isSpace = (c: string) => /\s/.test(c)
@@ -77,10 +80,10 @@ function tokenize(s: string): Token[] {
       let j = i
       while (isLetter(s[j] ?? '')) j++
       const id = s.slice(i, j).toLowerCase()
-      if ((FUNCTIONS as any)[id]) {
-        tokens.push({ type: 'func', name: id as keyof typeof FUNCTIONS })
-      } else if ((CONSTANTS as any)[id]) {
-        tokens.push({ type: 'const', name: id as keyof typeof CONSTANTS })
+      if (hasOwn(FUNCTIONS, id)) {
+        tokens.push({ type: 'func', name: id })
+      } else if (hasOwn(CONSTANTS, id)) {
+        tokens.push({ type: 'const', name: id })
       } else {
         throw new Error(`Unknown identifier: ${id}`)
       }
@@ -193,4 +196,3 @@ function evalRPN(rpn: Token[]): number {
   if (stack.length !== 1) throw new Error('Invalid expression')
   return stack[0]
 }
-
