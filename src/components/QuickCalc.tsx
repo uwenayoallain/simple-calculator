@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type React from 'react'
 import { evaluate } from '../lib/calc'
 import { THEMES as PRESETS, getThemeById, type ThemeId, type ThemeTone } from '../themes'
-import { Analytics } from "@vercel/analytics/react"
 type FormatMode = 'auto' | 'plain' | 'fixed2' | 'fixed4' | 'scientific'
 
 type ToneVarsStyle = React.CSSProperties & Record<`--${string}`, string>
@@ -528,7 +527,6 @@ export default function QuickCalc() {
         <span aria-hidden="true">|</span>
         <a className="qc-footer-link" href="https://uwe.rw" target="_blank" rel="noreferrer">uwe.rw</a>
       </footer>
-      <Analytics />
     </div>
   )
 }
