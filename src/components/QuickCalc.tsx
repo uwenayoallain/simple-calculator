@@ -5,6 +5,36 @@ import { THEMES as PRESETS, getThemeById, type ThemeId } from '../themes'
 
 const DEFAULT_THEME: ThemeId = 'tokyo-night'
 
+const readQueryFromUrl = () => {
+  if (typeof window === 'undefined') return ''
+  try {
+    const url = new URL(window.location.href)
+    const value = url.searchParams.get('q')
+    return value ?? ''
+  } catch {
+    return ''
+  }
+}
+
+const writeQueryToUrl = (value: string) => {
+  if (typeof window === 'undefined') return
+  try {
+    const url = new URL(window.location.href)
+    if (!value) {
+      url.searchParams.delete('q')
+    } else {
+      url.searchParams.set('q', value)
+    }
+    const next = `${url.pathname}${url.search}${url.hash}`
+    const current = `${window.location.pathname}${window.location.search}${window.location.hash}`
+    if (next !== current) {
+      window.history.replaceState(window.history.state, '', next)
+    }
+  } catch {
+    // ignore URL issues (e.g., malformed location)
+  }
+}
+
 function formatResult(n: number) {
   if (!isFinite(n)) return '∞'
   // Show up to 10 significant digits, but with grouping
@@ -17,7 +47,7 @@ function formatResult(n: number) {
 }
 
 export default function QuickCalc() {
-  const [query, setQuery] = useState('')
+  const [query, setQuery] = useState(() => readQueryFromUrl())
   const [copied, setCopied] = useState(false)
   const [themeId, setThemeId] = useState<ThemeId>(() => {
     const t = localStorage.getItem('qc-theme') as ThemeId | null
@@ -65,6 +95,20 @@ export default function QuickCalc() {
   useEffect(() => {
     localStorage.setItem('qc-theme', themeId)
   }, [themeId])
+
+  useEffect(() => {
+    writeQueryToUrl(query)
+  }, [query])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const onPop = () => {
+      const next = readQueryFromUrl()
+      setQuery(prev => (prev === next ? prev : next))
+    }
+    window.addEventListener('popstate', onPop)
+    return () => window.removeEventListener('popstate', onPop)
+  }, [])
 
   // Global Escape to close picker
   useEffect(() => {
