@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type React from 'react'
 import { evaluate } from '../lib/calc'
 import { THEMES as PRESETS, getThemeById, type ThemeId, type ThemeTone } from '../themes'
-
+import { Analytics } from "@vercel/analytics/react"
 type FormatMode = 'auto' | 'plain' | 'fixed2' | 'fixed4' | 'scientific'
 
 type ToneVarsStyle = React.CSSProperties & Record<`--${string}`, string>
@@ -283,68 +283,68 @@ export default function QuickCalc() {
   }) as React.CSSProperties, [activeTheme])
 
   return (
-    <div className="qc-root" data-theme={themeId} data-tone={activeTheme.tone} style={rootStyle}>
+    <div className="qc-root" data-theme={ themeId } data-tone={ activeTheme.tone } style={ rootStyle }>
       <div className="qc-toolbar" title="Utilities">
         <button
           className="qc-tool-btn"
-          onClick={() => {
+          onClick={ () => {
             setPickerOpen(true)
             setFormatOpen(false)
             setGuideOpen(false)
-          }}
+          } }
           aria-haspopup="dialog"
-          aria-expanded={pickerOpen}
-          aria-controls={pickerId}
-          aria-label={`Change appearance. Current style ${activeTheme.name}`}
+          aria-expanded={ pickerOpen }
+          aria-controls={ pickerId }
+          aria-label={ `Change appearance. Current style ${activeTheme.name}` }
         >
-          {activeTheme.name}
+          { activeTheme.name }
         </button>
         <button
           className="qc-tool-btn"
-          onClick={() => {
+          onClick={ () => {
             setFormatOpen(true)
             setPickerOpen(false)
             setGuideOpen(false)
-          }}
+          } }
           aria-haspopup="dialog"
-          aria-expanded={formatOpen}
-          aria-controls={formatId}
-          aria-label={`Change result formatting. Current mode ${formatLabel}`}
+          aria-expanded={ formatOpen }
+          aria-controls={ formatId }
+          aria-label={ `Change result formatting. Current mode ${formatLabel}` }
         >
-          Format: {formatLabel}
+          Format: { formatLabel }
         </button>
         <button
           className="qc-tool-btn"
-          onClick={() => {
+          onClick={ () => {
             setGuideOpen(true)
             setPickerOpen(false)
             setFormatOpen(false)
-          }}
+          } }
           aria-haspopup="dialog"
-          aria-expanded={guideOpen}
-          aria-controls={guideId}
+          aria-expanded={ guideOpen }
+          aria-controls={ guideId }
           aria-label="Show keyboard cheatsheet"
         >
           ?
         </button>
       </div>
-      <div className={`qc-picker ${pickerOpen ? 'show' : ''}`}>
-        <div className="qc-picker-backdrop" onClick={closeAllOverlays} />
+      <div className={ `qc-picker ${pickerOpen ? 'show' : ''}` }>
+        <div className="qc-picker-backdrop" onClick={ closeAllOverlays } />
         <div
           className="qc-picker-panel"
-          id={pickerId}
+          id={ pickerId }
           role="dialog"
           aria-modal="true"
-          aria-labelledby={themeTitleId}
-          aria-describedby={themeDescriptionId}
-          onClick={(e) => e.stopPropagation()}
+          aria-labelledby={ themeTitleId }
+          aria-describedby={ themeDescriptionId }
+          onClick={ (e) => e.stopPropagation() }
         >
           <div className="qc-picker-header">
-            <h2 className="qc-picker-title" id={themeTitleId}>Choose a style</h2>
-            <p className="qc-picker-sub" id={themeDescriptionId}>Switch between curated looks to match your desktop or productivity stack.</p>
+            <h2 className="qc-picker-title" id={ themeTitleId }>Choose a style</h2>
+            <p className="qc-picker-sub" id={ themeDescriptionId }>Switch between curated looks to match your desktop or productivity stack.</p>
           </div>
           <ul className="qc-grid" role="list">
-            {PRESETS.map((t) => {
+            { PRESETS.map((t) => {
               const previewVars = {
                 '--qc-bg': t.vars.bg,
                 '--qc-bg-layered': t.layered,
@@ -358,95 +358,95 @@ export default function QuickCalc() {
                 ...TONE_VARS[t.tone],
               } as React.CSSProperties
               return (
-                <li key={t.id}>
+                <li key={ t.id }>
                   <div
-                    className={`qc-card ${themeId === t.id ? 'selected' : ''}`}
-                    style={previewVars}
-                    onClick={() => selectTheme(t.id)}
-                    onKeyDown={(e) => {
+                    className={ `qc-card ${themeId === t.id ? 'selected' : ''}` }
+                    style={ previewVars }
+                    onClick={ () => selectTheme(t.id) }
+                    onKeyDown={ (e) => {
                       if (e.key === 'Enter' || e.key === ' ') {
                         e.preventDefault()
                         selectTheme(t.id)
                       }
-                    }}
-                    tabIndex={0}
+                    } }
+                    tabIndex={ 0 }
                     role="button"
-                    aria-pressed={themeId === t.id}
-                    title={t.name}
+                    aria-pressed={ themeId === t.id }
+                    title={ t.name }
                   >
-                    <div className="qc-card-inner" style={{
+                    <div className="qc-card-inner" style={ {
                       color: 'var(--qc-fg)',
                       background: 'var(--qc-bg-layered)',
                       borderColor: 'var(--qc-border)',
-                    }}>
-                      <div className="qc-mini" style={{ background: 'var(--qc-surface)', borderColor: 'var(--qc-border)' }}>
+                    } }>
+                      <div className="qc-mini" style={ { background: 'var(--qc-surface)', borderColor: 'var(--qc-border)' } }>
                         <div className="qc-mini-input">= 2+2</div>
-                        <div className="qc-mini-result" style={{
+                        <div className="qc-mini-result" style={ {
                           background: `linear-gradient(135deg, ${t.vars.accent}, ${t.vars.accent2})`,
                           WebkitBackgroundClip: 'text',
                           backgroundClip: 'text',
                           color: 'transparent',
                           textShadow: `0 0 12px ${t.vars.accent}55, 0 0 18px ${t.vars.accent2}44`,
-                        }}>4</div>
+                        } }>4</div>
                       </div>
                       <div className="qc-swatch-row">
-                        <div className="qc-swatch" style={{ background: t.vars.accent }} />
-                        <div className="qc-swatch" style={{ background: t.vars.accent2 }} />
-                        <div className="qc-swatch" style={{ background: t.vars.muted }} />
-                        <div className="qc-swatch" style={{ background: t.vars.fg }} />
+                        <div className="qc-swatch" style={ { background: t.vars.accent } } />
+                        <div className="qc-swatch" style={ { background: t.vars.accent2 } } />
+                        <div className="qc-swatch" style={ { background: t.vars.muted } } />
+                        <div className="qc-swatch" style={ { background: t.vars.fg } } />
                       </div>
-                      <div className="qc-card-title">{t.name}</div>
-                      <div className="qc-card-sub">{t.id}</div>
+                      <div className="qc-card-title">{ t.name }</div>
+                      <div className="qc-card-sub">{ t.id }</div>
                     </div>
                   </div>
                 </li>
               )
-            })}
+            }) }
           </ul>
         </div>
       </div>
-      <div className={`qc-modal ${formatOpen ? 'show' : ''}`}>
-        <div className="qc-picker-backdrop" onClick={closeAllOverlays} />
+      <div className={ `qc-modal ${formatOpen ? 'show' : ''}` }>
+        <div className="qc-picker-backdrop" onClick={ closeAllOverlays } />
         <div
           className="qc-modal-panel"
-          id={formatId}
+          id={ formatId }
           role="dialog"
           aria-modal="true"
           aria-labelledby="qc-format-title"
-          onClick={(e) => e.stopPropagation()}
+          onClick={ (e) => e.stopPropagation() }
         >
           <div className="qc-modal-header">
             <h2 id="qc-format-title">Result formatting</h2>
             <p>Choose how results are displayed. Press Enter to copy still uses the precise value.</p>
           </div>
           <ul className="qc-format-list" role="list">
-            {FORMAT_OPTIONS.map(option => (
-              <li key={option.id}>
+            { FORMAT_OPTIONS.map(option => (
+              <li key={ option.id }>
                 <button
-                  className={`qc-format-item ${formatMode === option.id ? 'selected' : ''}`}
-                  onClick={() => {
+                  className={ `qc-format-item ${formatMode === option.id ? 'selected' : ''}` }
+                  onClick={ () => {
                     setFormatMode(option.id)
                     closeAllOverlays()
-                  }}
+                  } }
                 >
-                  <span className="qc-format-name">{option.label}</span>
-                  <span className="qc-format-hint">{option.hint}</span>
+                  <span className="qc-format-name">{ option.label }</span>
+                  <span className="qc-format-hint">{ option.hint }</span>
                 </button>
               </li>
-            ))}
+            )) }
           </ul>
         </div>
       </div>
-      <div className={`qc-modal ${guideOpen ? 'show' : ''}`}>
-        <div className="qc-picker-backdrop" onClick={closeAllOverlays} />
+      <div className={ `qc-modal ${guideOpen ? 'show' : ''}` }>
+        <div className="qc-picker-backdrop" onClick={ closeAllOverlays } />
         <div
           className="qc-modal-panel"
-          id={guideId}
+          id={ guideId }
           role="dialog"
           aria-modal="true"
           aria-labelledby="qc-guide-title"
           aria-haspopup="dialog"
-          onClick={(e) => e.stopPropagation()}
+          onClick={ (e) => e.stopPropagation() }
         >
           <div className="qc-modal-header">
             <h2 id="qc-guide-title">Keyboard & functions</h2>
@@ -482,45 +482,45 @@ export default function QuickCalc() {
               </ul>
             </div>
           </div>
-          <button className="qc-modal-close" onClick={closeAllOverlays}>Close</button>
+          <button className="qc-modal-close" onClick={ closeAllOverlays }>Close</button>
         </div>
       </div>
-      <main className="qc-main" aria-hidden={anyOverlayOpen}>
+      <main className="qc-main" aria-hidden={ anyOverlayOpen }>
         <div className="qc-spotlight">
-          <label className="qc-sr-only" htmlFor={inputId}>Inline calculator input</label>
-          <p className="qc-sr-only" id={instructionsId}>Type a math expression like two plus two. Press Enter to copy the live answer to your clipboard.</p>
+          <label className="qc-sr-only" htmlFor={ inputId }>Inline calculator input</label>
+          <p className="qc-sr-only" id={ instructionsId }>Type a math expression like two plus two. Press Enter to copy the live answer to your clipboard.</p>
           <input
-            ref={inputRef}
-            id={inputId}
+            ref={ inputRef }
+            id={ inputId }
             className="qc-input"
             placeholder="Type 2+2 to calculate…"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={onKeyDown}
-            spellCheck={false}
+            value={ query }
+            onChange={ (e) => setQuery(e.target.value) }
+            onKeyDown={ onKeyDown }
+            spellCheck={ false }
             autoCapitalize="off"
             autoCorrect="off"
-            aria-describedby={describedBy}
+            aria-describedby={ describedBy }
           />
 
-        {shouldEval ? (
-          <div className="qc-result" {...liveResultProps}>
-            {hasResult ? (
-              <>
-                <div className="qc-result-value" id={liveResultId}>{formattedResult}</div>
-                <div className="qc-result-sub" id={copyHintId}>Press Enter to copy</div>
-              </>
-            ) : (
-              <div className="qc-result-hint" id={liveResultId}>Live result appears here…</div>
-            )}
-          </div>
-        ) : (
-          <div className="qc-result qc-muted">
-            <div className="qc-result-hint" id={fallbackHintId}>Try things like: sqrt(2)^2, tau/4, deg(pi), 45% of 120</div>
-          </div>
-        )}
+          { shouldEval ? (
+            <div className="qc-result" { ...liveResultProps }>
+              { hasResult ? (
+                <>
+                  <div className="qc-result-value" id={ liveResultId }>{ formattedResult }</div>
+                  <div className="qc-result-sub" id={ copyHintId }>Press Enter to copy</div>
+                </>
+              ) : (
+                <div className="qc-result-hint" id={ liveResultId }>Live result appears here…</div>
+              ) }
+            </div>
+          ) : (
+            <div className="qc-result qc-muted">
+              <div className="qc-result-hint" id={ fallbackHintId }>Try things like: sqrt(2)^2, tau/4, deg(pi), 45% of 120</div>
+            </div>
+          ) }
 
-          <div className={`qc-toast ${copied ? 'show' : ''}`}>Copied!</div>
+          <div className={ `qc-toast ${copied ? 'show' : ''}` }>Copied!</div>
         </div>
       </main>
       <footer className="qc-footer">
@@ -528,6 +528,7 @@ export default function QuickCalc() {
         <span aria-hidden="true">|</span>
         <a className="qc-footer-link" href="https://uwe.rw" target="_blank" rel="noreferrer">uwe.rw</a>
       </footer>
+      <Analytics />
     </div>
   )
 }
