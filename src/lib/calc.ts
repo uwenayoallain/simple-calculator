@@ -14,21 +14,34 @@ type Token =
 
 const FUNCTIONS = {
   sqrt: (x: number) => Math.sqrt(x),
+  cbrt: (x: number) => Math.cbrt(x),
   sin: (x: number) => Math.sin(x),
   cos: (x: number) => Math.cos(x),
   tan: (x: number) => Math.tan(x),
+  asin: (x: number) => Math.asin(x),
+  acos: (x: number) => Math.acos(x),
+  atan: (x: number) => Math.atan(x),
+  sinh: (x: number) => Math.sinh(x),
+  cosh: (x: number) => Math.cosh(x),
+  tanh: (x: number) => Math.tanh(x),
   abs: (x: number) => Math.abs(x),
   ln: (x: number) => Math.log(x),
   log: (x: number) => Math.log10 ? Math.log10(x) : Math.log(x) / Math.LN10,
+  log2: (x: number) => Math.log2 ? Math.log2(x) : Math.log(x) / Math.LN2,
+  exp: (x: number) => Math.exp(x),
   floor: (x: number) => Math.floor(x),
   ceil: (x: number) => Math.ceil(x),
   round: (x: number) => Math.round(x),
-}
+  deg: (x: number) => x * (180 / Math.PI),
+  rad: (x: number) => x * (Math.PI / 180),
+} satisfies Record<string, (x: number) => number>
 
 const CONSTANTS = {
   pi: Math.PI,
+  tau: Math.PI * 2,
   e: Math.E,
-}
+  phi: (1 + Math.sqrt(5)) / 2,
+} satisfies Record<string, number>
 
 const hasOwn = <T extends object>(obj: T, key: PropertyKey): key is keyof T =>
   Object.prototype.hasOwnProperty.call(obj, key)
@@ -37,7 +50,8 @@ const shouldInsertImplicitMultiply = (prev: Token | undefined) =>
   !!prev && (prev.type === 'num' || prev.type === 'const' || prev.type === 'rparen' || prev.type === 'percent')
 
 const isDigit = (c: string) => c >= '0' && c <= '9'
-const isLetter = (c: string) => /[a-z]/i.test(c)
+const isIdentStart = (c: string) => /[a-z]/i.test(c)
+const isIdentChar = (c: string) => /[a-z0-9_]/i.test(c)
 const isSpace = (c: string) => /\s/.test(c)
 
 export function evaluate(input: string): number {
@@ -87,12 +101,18 @@ function tokenize(s: string): Token[] {
     if (ch === ')') { tokens.push({ type: 'rparen' }); i++; // possible postfix percent
       if (s[i] === '%') { tokens.push({ type: 'percent' }); i++ }
       continue }
-    if (isLetter(ch)) {
+    if (isIdentStart(ch)) {
       let j = i
-      while (isLetter(s[j] ?? '')) j++
+      while (isIdentChar(s[j] ?? '')) j++
       const id = s.slice(i, j).toLowerCase()
       const prev = tokens[tokens.length - 1]
-      if (hasOwn(FUNCTIONS, id)) {
+      if (id === 'of') {
+        if (shouldInsertImplicitMultiply(prev)) {
+          tokens.push({ type: 'op', value: '*' })
+        } else {
+          // standalone 'of' treated as noop multiplier, skip
+        }
+      } else if (hasOwn(FUNCTIONS, id)) {
         if (shouldInsertImplicitMultiply(prev)) {
           tokens.push({ type: 'op', value: '*' })
         }

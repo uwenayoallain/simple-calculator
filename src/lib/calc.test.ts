@@ -17,6 +17,23 @@ describe('evaluate', () => {
     expect(result).toBe(6)
   })
 
+  it('supports percent expressions with natural language of', () => {
+    expect(evaluate('45% of 120')).toBeCloseTo(54)
+  })
+
+  it('supports additional constants', () => {
+    const tau = evaluate('tau')
+    expect(tau).toBeCloseTo(Math.PI * 2)
+    const phi = evaluate('phi')
+    expect(phi).toBeCloseTo((1 + Math.sqrt(5)) / 2)
+  })
+
+  it('supports log2 and rad/deg helpers', () => {
+    expect(evaluate('log2(1024)')).toBe(10)
+    expect(evaluate('deg(pi)')).toBeCloseTo(180)
+    expect(evaluate('rad(90)')).toBeCloseTo(Math.PI / 2)
+  })
+
   it('still allows optional leading equals sign', () => {
     const result = evaluate('= 1 + 2')
     expect(result).toBe(3)
