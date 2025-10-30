@@ -33,12 +33,17 @@ const CONSTANTS = {
 const hasOwn = <T extends object>(obj: T, key: PropertyKey): key is keyof T =>
   Object.prototype.hasOwnProperty.call(obj, key)
 
+const shouldInsertImplicitMultiply = (prev: Token | undefined) =>
+  !!prev && (prev.type === 'num' || prev.type === 'const' || prev.type === 'rparen' || prev.type === 'percent')
+
 const isDigit = (c: string) => c >= '0' && c <= '9'
 const isLetter = (c: string) => /[a-z]/i.test(c)
 const isSpace = (c: string) => /\s/.test(c)
 
 export function evaluate(input: string): number {
-  const tokens = tokenize(input)
+  const trimmed = input.trim()
+  const expr = trimmed.startsWith('=') ? trimmed.slice(1) : trimmed
+  const tokens = tokenize(expr)
   const rpn = toRPN(tokens)
   return evalRPN(rpn)
 }
@@ -72,7 +77,13 @@ function tokenize(s: string): Token[] {
       i++
       continue
     }
-    if (ch === '(') { tokens.push({ type: 'lparen' }); i++; continue }
+    if (ch === '(') {
+      const prev = tokens[tokens.length - 1]
+      if (shouldInsertImplicitMultiply(prev)) {
+        tokens.push({ type: 'op', value: '*' })
+      }
+      tokens.push({ type: 'lparen' }); i++; continue
+    }
     if (ch === ')') { tokens.push({ type: 'rparen' }); i++; // possible postfix percent
       if (s[i] === '%') { tokens.push({ type: 'percent' }); i++ }
       continue }
@@ -80,9 +91,16 @@ function tokenize(s: string): Token[] {
       let j = i
       while (isLetter(s[j] ?? '')) j++
       const id = s.slice(i, j).toLowerCase()
+      const prev = tokens[tokens.length - 1]
       if (hasOwn(FUNCTIONS, id)) {
+        if (shouldInsertImplicitMultiply(prev)) {
+          tokens.push({ type: 'op', value: '*' })
+        }
         tokens.push({ type: 'func', name: id })
       } else if (hasOwn(CONSTANTS, id)) {
+        if (shouldInsertImplicitMultiply(prev)) {
+          tokens.push({ type: 'op', value: '*' })
+        }
         tokens.push({ type: 'const', name: id })
       } else {
         throw new Error(`Unknown identifier: ${id}`)
