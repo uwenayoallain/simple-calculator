@@ -5,6 +5,8 @@ import { THEMES as PRESETS, getThemeById, type ThemeId, type ThemeTone } from '.
 
 type FormatMode = 'auto' | 'plain' | 'fixed2' | 'fixed4' | 'scientific'
 
+type ToneVarsStyle = React.CSSProperties & Record<`--${string}`, string>
+
 const FORMAT_OPTIONS: Array<{ id: FormatMode; label: string; hint: string }> = [
   { id: 'auto', label: 'Auto', hint: 'Smart significant digits with scientific when needed' },
   { id: 'plain', label: 'Plain', hint: 'Raw number without grouping' },
@@ -13,7 +15,7 @@ const FORMAT_OPTIONS: Array<{ id: FormatMode; label: string; hint: string }> = [
   { id: 'scientific', label: 'Scientific', hint: 'Scientific notation with 8 digits' },
 ]
 
-const TONE_VARS: Record<ThemeTone, React.CSSProperties> = {
+const TONE_VARS = {
   dark: {
     '--qc-layer-elevated': 'linear-gradient(180deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05))',
     '--qc-layer-elevated-border': 'rgba(255,255,255,0.08)',
@@ -48,7 +50,7 @@ const TONE_VARS: Record<ThemeTone, React.CSSProperties> = {
     '--qc-layer-code-bg': 'rgba(15,23,42,0.08)',
     '--qc-shadow-elevated': '0 30px 80px rgba(15,23,42,0.22)',
   },
-}
+} satisfies Record<ThemeTone, ToneVarsStyle>
 
 const prefersLightPreset = () => {
   if (typeof window === 'undefined') return false
