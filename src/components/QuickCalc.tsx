@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type React from 'react'
 import { evaluate } from '../lib/calc'
-import { THEMES as PRESETS, getThemeById, type ThemeId } from '../themes'
+import { THEMES as PRESETS, getThemeById, type ThemeId, type ThemeTone } from '../themes'
 
 type FormatMode = 'auto' | 'plain' | 'fixed2' | 'fixed4' | 'scientific'
 
@@ -12,6 +12,43 @@ const FORMAT_OPTIONS: Array<{ id: FormatMode; label: string; hint: string }> = [
   { id: 'fixed4', label: 'Fixed 4', hint: 'Four decimal places' },
   { id: 'scientific', label: 'Scientific', hint: 'Scientific notation with 8 digits' },
 ]
+
+const TONE_VARS: Record<ThemeTone, React.CSSProperties> = {
+  dark: {
+    '--qc-layer-elevated': 'linear-gradient(180deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05))',
+    '--qc-layer-elevated-border': 'rgba(255,255,255,0.08)',
+    '--qc-layer-button-bg': 'rgba(255,255,255,0.08)',
+    '--qc-layer-button-hover': 'rgba(255,255,255,0.12)',
+    '--qc-layer-button-border': 'rgba(255,255,255,0.08)',
+    '--qc-layer-card-bg': 'rgba(255,255,255,0.06)',
+    '--qc-layer-card-border': 'rgba(255,255,255,0.08)',
+    '--qc-layer-card-hover-shadow': '0 10px 30px rgba(0,0,0,0.35)',
+    '--qc-layer-card-selected-shadow': '0 0 0 2px color-mix(in srgb, var(--qc-accent) 55%, transparent) inset, 0 14px 34px rgba(0,0,0,0.45)',
+    '--qc-layer-format-bg': 'rgba(255,255,255,0.06)',
+    '--qc-layer-format-selected-bg': 'rgba(255,255,255,0.1)',
+    '--qc-format-shadow-selected': '0 10px 28px rgba(0,0,0,0.32)',
+    '--qc-layer-toast-bg': 'rgba(255,255,255,0.08)',
+    '--qc-layer-code-bg': 'rgba(255,255,255,0.08)',
+    '--qc-shadow-elevated': '0 30px 80px rgba(0,0,0,0.45)',
+  },
+  light: {
+    '--qc-layer-elevated': 'rgba(255,255,255,0.95)',
+    '--qc-layer-elevated-border': 'rgba(15,23,42,0.12)',
+    '--qc-layer-button-bg': 'rgba(15,23,42,0.06)',
+    '--qc-layer-button-hover': 'rgba(15,23,42,0.1)',
+    '--qc-layer-button-border': 'rgba(15,23,42,0.14)',
+    '--qc-layer-card-bg': 'rgba(255,255,255,0.92)',
+    '--qc-layer-card-border': 'rgba(15,23,42,0.14)',
+    '--qc-layer-card-hover-shadow': '0 14px 30px rgba(15,23,42,0.16)',
+    '--qc-layer-card-selected-shadow': '0 0 0 2px color-mix(in srgb, var(--qc-accent) 45%, transparent) inset, 0 16px 36px rgba(15,23,42,0.2)',
+    '--qc-layer-format-bg': 'rgba(15,23,42,0.06)',
+    '--qc-layer-format-selected-bg': 'rgba(15,23,42,0.12)',
+    '--qc-format-shadow-selected': '0 14px 32px rgba(15,23,42,0.18)',
+    '--qc-layer-toast-bg': 'rgba(15,23,42,0.08)',
+    '--qc-layer-code-bg': 'rgba(15,23,42,0.08)',
+    '--qc-shadow-elevated': '0 30px 80px rgba(15,23,42,0.22)',
+  },
+}
 
 const prefersLightPreset = () => {
   if (typeof window === 'undefined') return false
@@ -240,10 +277,11 @@ export default function QuickCalc() {
     '--qc-surface': activeTheme.vars.surface,
     '--qc-border': activeTheme.vars.border,
     '--qc-bg-layered': activeTheme.layered,
+    ...TONE_VARS[activeTheme.tone],
   }) as React.CSSProperties, [activeTheme])
 
   return (
-    <div className="qc-root" data-theme={themeId} style={rootStyle}>
+    <div className="qc-root" data-theme={themeId} data-tone={activeTheme.tone} style={rootStyle}>
       <div className="qc-toolbar" title="Utilities">
         <button
           className="qc-tool-btn"
@@ -304,53 +342,64 @@ export default function QuickCalc() {
             <p className="qc-picker-sub" id={themeDescriptionId}>Switch between curated looks to match your desktop or productivity stack.</p>
           </div>
           <ul className="qc-grid" role="list">
-            {PRESETS.map((t) => (
-              <li key={t.id}>
-                <div
-                  className={`qc-card ${themeId === t.id ? 'selected' : ''}`}
-                  onClick={() => selectTheme(t.id)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault()
-                      selectTheme(t.id)
-                    }
-                  }}
-                  tabIndex={0}
-                  role="button"
-                  aria-pressed={themeId === t.id}
-                  title={t.name}
-                >
-                  <div className="qc-card-inner" style={{
-                    '--qc-fg': t.vars.fg,
-                    '--qc-muted': t.vars.muted,
-                    '--qc-border': t.vars.border,
-                    '--qc-surface': t.vars.surface,
-                    color: t.vars.fg,
-                    background: t.layered,
-                    borderColor: t.vars.border,
-                  } as React.CSSProperties}>
-                    <div className="qc-mini" style={{ background: t.vars.surface, borderColor: t.vars.border }}>
-                      <div className="qc-mini-input">= 2+2</div>
-                      <div className="qc-mini-result" style={{
-                        background: `linear-gradient(135deg, ${t.vars.accent}, ${t.vars.accent2})`,
-                        WebkitBackgroundClip: 'text',
-                        backgroundClip: 'text',
-                        color: 'transparent',
-                        textShadow: `0 0 12px ${t.vars.accent}55, 0 0 18px ${t.vars.accent2}44`,
-                      }}>4</div>
+            {PRESETS.map((t) => {
+              const previewVars = {
+                '--qc-bg': t.vars.bg,
+                '--qc-bg-layered': t.layered,
+                '--qc-fg': t.vars.fg,
+                '--qc-muted': t.vars.muted,
+                '--qc-accent': t.vars.accent,
+                '--qc-accent-2': t.vars.accent2,
+                '--qc-error': t.vars.error,
+                '--qc-border': t.vars.border,
+                '--qc-surface': t.vars.surface,
+                ...TONE_VARS[t.tone],
+              } as React.CSSProperties
+              return (
+                <li key={t.id}>
+                  <div
+                    className={`qc-card ${themeId === t.id ? 'selected' : ''}`}
+                    style={previewVars}
+                    onClick={() => selectTheme(t.id)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault()
+                        selectTheme(t.id)
+                      }
+                    }}
+                    tabIndex={0}
+                    role="button"
+                    aria-pressed={themeId === t.id}
+                    title={t.name}
+                  >
+                    <div className="qc-card-inner" style={{
+                      color: 'var(--qc-fg)',
+                      background: 'var(--qc-bg-layered)',
+                      borderColor: 'var(--qc-border)',
+                    }}>
+                      <div className="qc-mini" style={{ background: 'var(--qc-surface)', borderColor: 'var(--qc-border)' }}>
+                        <div className="qc-mini-input">= 2+2</div>
+                        <div className="qc-mini-result" style={{
+                          background: `linear-gradient(135deg, ${t.vars.accent}, ${t.vars.accent2})`,
+                          WebkitBackgroundClip: 'text',
+                          backgroundClip: 'text',
+                          color: 'transparent',
+                          textShadow: `0 0 12px ${t.vars.accent}55, 0 0 18px ${t.vars.accent2}44`,
+                        }}>4</div>
+                      </div>
+                      <div className="qc-swatch-row">
+                        <div className="qc-swatch" style={{ background: t.vars.accent }} />
+                        <div className="qc-swatch" style={{ background: t.vars.accent2 }} />
+                        <div className="qc-swatch" style={{ background: t.vars.muted }} />
+                        <div className="qc-swatch" style={{ background: t.vars.fg }} />
+                      </div>
+                      <div className="qc-card-title">{t.name}</div>
+                      <div className="qc-card-sub">{t.id}</div>
                     </div>
-                    <div className="qc-swatch-row">
-                      <div className="qc-swatch" style={{ background: t.vars.accent }} />
-                      <div className="qc-swatch" style={{ background: t.vars.accent2 }} />
-                      <div className="qc-swatch" style={{ background: t.vars.muted }} />
-                      <div className="qc-swatch" style={{ background: t.vars.fg }} />
-                    </div>
-                    <div className="qc-card-title">{t.name}</div>
-                    <div className="qc-card-sub">{t.id}</div>
                   </div>
-                </div>
-              </li>
-            ))}
+                </li>
+              )
+            })}
           </ul>
         </div>
       </div>

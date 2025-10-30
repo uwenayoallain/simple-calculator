@@ -13,6 +13,21 @@ html, body, #root { height: 100%; margin: 0 }
   --qc-error: #ff6b6b;
   --qc-surface: rgba(18, 22, 40, 0.85);
   --qc-border: rgba(255, 255, 255, 0.08);
+  --qc-layer-elevated: linear-gradient(180deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05));
+  --qc-layer-elevated-border: rgba(255,255,255,0.08);
+  --qc-layer-button-bg: rgba(255,255,255,0.08);
+  --qc-layer-button-hover: rgba(255,255,255,0.12);
+  --qc-layer-button-border: rgba(255,255,255,0.08);
+  --qc-layer-card-bg: rgba(255,255,255,0.06);
+  --qc-layer-card-border: rgba(255,255,255,0.08);
+  --qc-layer-card-hover-shadow: 0 10px 30px rgba(0,0,0,0.35);
+  --qc-layer-card-selected-shadow: 0 0 0 2px rgba(255,255,255,0.16) inset, 0 10px 30px rgba(0,0,0,0.35);
+  --qc-layer-format-bg: rgba(255,255,255,0.06);
+  --qc-layer-format-selected-bg: rgba(255,255,255,0.1);
+  --qc-format-shadow-selected: 0 8px 24px rgba(0,0,0,0.25);
+  --qc-layer-toast-bg: rgba(255,255,255,0.08);
+  --qc-layer-code-bg: rgba(255,255,255,0.08);
+  --qc-shadow-elevated: 0 30px 80px rgba(0,0,0,0.45);
 }
 
 .qc-root {
@@ -36,9 +51,9 @@ html, body, #root { height: 100%; margin: 0 }
 }
 
 .qc-tool-btn {
-  background: rgba(255,255,255,0.08);
+  background: var(--qc-layer-button-bg);
   color: var(--qc-fg);
-  border: 1px solid var(--qc-border);
+  border: 1px solid var(--qc-layer-button-border);
   border-radius: 10px;
   padding: 6px 14px;
   font-size: 12px;
@@ -49,7 +64,7 @@ html, body, #root { height: 100%; margin: 0 }
   cursor: pointer;
   transition: background 160ms ease, border-color 160ms ease;
 }
-.qc-tool-btn:hover { background: rgba(255,255,255,0.12); border-color: color-mix(in srgb, var(--qc-accent) 40%, transparent) }
+.qc-tool-btn:hover { background: var(--qc-layer-button-hover); border-color: color-mix(in srgb, var(--qc-accent) 40%, transparent) }
 .qc-tool-btn:focus { outline: 2px solid var(--qc-accent); outline-offset: 2px }
 
 .qc-main {
@@ -157,8 +172,8 @@ html, body, #root { height: 100%; margin: 0 }
 .qc-toast {
   position: absolute;
   right: 12px; top: 12px;
-  background: rgba(255,255,255,0.08);
-  border: 1px solid var(--qc-border);
+  background: var(--qc-layer-toast-bg);
+  border: 1px solid var(--qc-layer-button-border);
   color: var(--qc-fg);
   padding: 6px 10px;
   border-radius: 999px;
@@ -219,11 +234,11 @@ html, body, #root { height: 100%; margin: 0 }
   max-height: min(80vh, 620px);
   overflow: auto;
   backdrop-filter: blur(12px) saturate(1.2);
-  background: linear-gradient(180deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05));
-  border: 1px solid var(--qc-border);
+  background: var(--qc-layer-elevated);
+  border: 1px solid var(--qc-layer-elevated-border);
   border-radius: 16px;
   padding: 22px 24px;
-  box-shadow: 0 30px 80px rgba(0,0,0,0.45);
+  box-shadow: var(--qc-shadow-elevated);
   color: var(--qc-fg);
 }
 .qc-modal-header {
@@ -257,7 +272,7 @@ html, body, #root { height: 100%; margin: 0 }
   padding: 10px 12px;
   border-radius: 10px;
   border: 1px solid var(--qc-border);
-  background: rgba(255,255,255,0.06);
+  background: var(--qc-layer-format-bg);
   color: var(--qc-fg);
   cursor: pointer;
   display: grid;
@@ -267,8 +282,8 @@ html, body, #root { height: 100%; margin: 0 }
 .qc-format-item:hover { transform: translateY(-1px); border-color: color-mix(in srgb, var(--qc-accent) 45%, transparent) }
 .qc-format-item.selected {
   border-color: color-mix(in srgb, var(--qc-accent) 55%, transparent);
-  background: rgba(255,255,255,0.1);
-  box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+  background: var(--qc-layer-format-selected-bg);
+  box-shadow: var(--qc-format-shadow-selected);
 }
 .qc-format-name {
   font-weight: 600;
@@ -301,15 +316,15 @@ html, body, #root { height: 100%; margin: 0 }
 }
 .qc-guide-grid code {
   font-family: 'Space Grotesk', 'Inter', ui-sans-serif;
-  background: rgba(255,255,255,0.08);
+  background: var(--qc-layer-code-bg);
   padding: 2px 6px;
   border-radius: 6px;
   color: var(--qc-fg);
 }
 .qc-modal-close {
   margin-top: 18px;
-  border: 1px solid var(--qc-border);
-  background: rgba(255,255,255,0.08);
+  border: 1px solid var(--qc-layer-button-border);
+  background: var(--qc-layer-button-bg);
   color: var(--qc-fg);
   border-radius: 999px;
   padding: 6px 16px;
@@ -318,7 +333,7 @@ html, body, #root { height: 100%; margin: 0 }
   cursor: pointer;
   font-family: 'Space Grotesk', 'Inter', ui-sans-serif;
 }
-.qc-modal-close:hover { background: rgba(255,255,255,0.12) }
+.qc-modal-close:hover { background: var(--qc-layer-button-hover) }
 .qc-modal-close:focus { outline: 2px solid var(--qc-accent); outline-offset: 2px }
 
 /* Theme selector */
@@ -331,11 +346,11 @@ html, body, #root { height: 100%; margin: 0 }
   max-height: min(80vh, 720px);
   overflow: auto;
   backdrop-filter: blur(12px) saturate(1.2);
-  background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04));
-  border: 1px solid var(--qc-border);
+  background: var(--qc-layer-elevated);
+  border: 1px solid var(--qc-layer-elevated-border);
   border-radius: 14px;
   padding: 16px;
-  box-shadow: 0 30px 80px rgba(0,0,0,0.45);
+  box-shadow: var(--qc-shadow-elevated);
   z-index: 1;
 }
 
@@ -377,16 +392,16 @@ html, body, #root { height: 100%; margin: 0 }
   width: 100%;
   height: 100%;
   border-radius: 12px;
-  border: 1px solid var(--qc-border);
+  border: 1px solid var(--qc-layer-card-border);
   overflow: hidden;
   cursor: pointer;
-  background: rgba(255,255,255,0.06);
+  background: var(--qc-layer-card-bg);
   transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease;
   outline: none;
 }
 .qc-card:focus-visible { box-shadow: 0 0 0 2px var(--qc-accent); border-color: var(--qc-accent); transform: translateY(-2px) }
-.qc-card:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(0,0,0,0.35) }
-.qc-card.selected { box-shadow: 0 0 0 2px rgba(255,255,255,0.16) inset, 0 10px 30px rgba(0,0,0,0.35) }
+.qc-card:hover { transform: translateY(-2px); box-shadow: var(--qc-layer-card-hover-shadow) }
+.qc-card.selected { box-shadow: var(--qc-layer-card-selected-shadow) }
 .qc-card-inner { padding: 10px; }
 .qc-swatch-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 8px }
 .qc-swatch { height: 12px; border-radius: 6px }
