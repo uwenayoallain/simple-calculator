@@ -11,7 +11,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600&family=Jersey+25&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
     <meta name="robots" content="index,follow" />
     <title>Simple Inline Calculator | Lightning-Fast Math Anywhere</title>
     <meta name="description" content="Simple Inline Calculator delivers instant, keyboard-first calculations with live results, theme controls, and smart parsing for everyday math." />
@@ -30,6 +30,19 @@
     <meta name="twitter:description" content="Calculate without leaving your keyboard. Live answers, smart parsing, easy copy to clipboard." />
     <meta name="twitter:image" content="https://calc.uwe.rw/og.png" />
     <meta name="twitter:image:alt" content="Screenshot of the Simple Inline Calculator interface" />
+    <script>
+      (() => {
+        const KEY = 'qc-theme'
+        const saved = typeof localStorage !== 'undefined' ? localStorage.getItem(KEY) : null
+        const hasMedia = typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+        const systemDark = hasMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+        const systemLight = hasMedia && window.matchMedia('(prefers-color-scheme: light)').matches
+        const pref = (saved === 'light' || saved === 'dark' || saved === 'system') ? saved : 'system'
+        const theme = pref === 'light' || pref === 'dark' ? pref : (systemDark ? 'dark' : systemLight ? 'light' : 'dark')
+        document.documentElement.setAttribute('data-theme', theme)
+        document.documentElement.setAttribute('data-theme-preference', pref)
+      })()
+    </script>
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",

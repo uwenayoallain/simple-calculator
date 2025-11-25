@@ -1,13 +1,9 @@
+import './index.css'
 import './quickcalc.css'
 import QuickCalc from './components/QuickCalc'
-import { Analytics } from '@vercel/analytics/react'
 
 function App() {
-
-  return <>
-    <QuickCalc />
-    <Analytics />
-  </>
+  return <QuickCalc />
 }
 
 export default App

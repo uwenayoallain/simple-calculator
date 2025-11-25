@@ -12,38 +12,49 @@ Simple Inline Calculator is a React-based web application providing a Spotlight-
 
 - `pnpm install` — Install dependencies
 - `pnpm dev` — Start Vite dev server with HMR (default port 5173)
+- `pnpm build` — Type-check and build for production
 - `pnpm lint` — Run ESLint across the project
 - `pnpm preview` — Serve the production build locally
+- `pnpm test` — Run Vitest test suite once
+- `pnpm test:watch` — Run Vitest in watch mode
 
-**Note:** DO NOT run `pnpm build` as a dev server is always running and will conflict.
+**Note:** Avoid running `pnpm build` when dev server is running to prevent port conflicts.
 
 ## Architecture
 
 ### Core Components
 
 **QuickCalc** (`src/components/QuickCalc.tsx`)
-- Main calculator component with input handling, result display, and theme picker
-- Handles keyboard shortcuts: Enter to copy result, Escape to clear or close picker
-- Manages theme persistence via localStorage with key `qc-theme`
-- Uses React Compiler optimizations (useMemo for expensive computations)
+- Main calculator component with input handling, result display, and theme switcher
+- Keyboard shortcuts: Enter to copy result, Escape to clear or close modal, `?` to toggle help
+- Manages theme persistence via localStorage with key `qc-theme` (dark/light mode)
+- URL query parameters: `?q=expression` for shareable calculator state
+- Uses React Compiler optimizations and GSAP for animations
+- Integrated with @vercel/analytics for usage tracking
 
 **Expression Evaluator** (`src/lib/calc.ts`)
 - Safe math expression parser using shunting-yard algorithm
 - No eval() usage—custom tokenizer, RPN converter, and evaluator
-- Supports: operators (+, -, *, /, ^), functions (sqrt, sin, cos, tan, abs, ln, log, floor, ceil, round), constants (pi, e), unary minus, postfix percent
+- Operators: `+`, `-`, `*`, `/`, `^` (power), `%` (postfix percent)
+- Functions: sqrt, cbrt, sin, cos, tan, asin, acos, atan, sinh, cosh, tanh, abs, ln, log, log2, exp, floor, ceil, round, deg, rad
+- Constants: pi, tau, e, phi
+- Supports unary minus, implicit multiplication (e.g., `2pi`), and `of` keyword (e.g., `45% of 120`)
 - Throws errors on invalid expressions, domain errors, or unknown identifiers
 
-**Theme System** (`src/themes.ts`)
-- 17 pre-defined themes (Dracula, Tokyo Night, Nord, Solarized, etc.)
-- Each theme defines 8 CSS custom properties + layered gradient background
-- `getThemeById()` safely retrieves theme by ID with fallback to first theme
+**Theme System** (`src/index.css` and `src/themes.ts`)
+- Dark/light mode toggle with system preference detection fallback
+- Theme persisted to localStorage as `qc-theme`
+- Each theme defines 8 CSS custom properties (--bg-primary, --bg-elevated, --text-primary, --accent, etc.)
+- Applied via `[data-theme="dark"]` and `[data-theme="light"]` attribute on root element
 
 ### Styling
 
-- Global styles: `src/quickcalc.css`
-- CSS custom properties injected via inline styles in QuickCalc component
+- Global styles: `src/index.css` (theme variables, resets, base styles)
+- Component styles: `src/quickcalc.css` (calculator-specific styles)
+- CSS custom properties define theme colors, applied dynamically via data attributes
 - Uses modern CSS (backdrop-filter, gradient text with background-clip)
 - Responsive layout with mobile-first approach
+- GSAP for entrance animations and modal transitions
 
 ### Build Configuration
 
@@ -62,16 +73,20 @@ Simple Inline Calculator is a React-based web application providing a Spotlight-
 
 ## Key Behaviors
 
-1. **Expression Parsing:** Input starting with `=` triggers calculation mode
+1. **Expression Parsing:** Input starting with `=` triggers calculation mode (optional prefix)
 2. **Error Handling:** Invalid expressions show no error while typing (only shows result when valid)
 3. **Result Formatting:** Numbers formatted with locale grouping, up to 10 decimals, exponential notation for very large/small values
 4. **Copy Flow:** Press Enter when result is visible to copy to clipboard (shows "Copied!" toast)
-5. **Theme Picker:** Overlay with backdrop blur, Escape closes, scroll-lock when open
+5. **Help Modal:** Press `?` to open Quick Reference guide showing all functions and constants
+6. **Shareable State:** URL query parameter `?q=expression` allows sharing calculator state
+7. **Theme Toggle:** Dark/light mode button with system preference fallback
 
 ## Special Notes
 
 - React Compiler impacts Vite dev & build performance (intentional tradeoff)
-- No testing framework configured yet (recommended: vitest + @testing-library/react)
+- Testing: Vitest configured with `pnpm test` and `pnpm test:watch` commands
+- GSAP used for timeline animations (page entrance, modal transitions)
+- Analytics integrated via @vercel/analytics for usage tracking
 - All static assets in `public/` are publicly served
 - Vite environment variables must be prefixed with `VITE_`
 

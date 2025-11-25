@@ -10,7 +10,7 @@ type Token =
   | { type: 'func'; name: keyof typeof FUNCTIONS }
   | { type: 'const'; name: keyof typeof CONSTANTS }
   | { type: 'percent' } // postfix 1-arg op
-  | { type: 'u-'} // unary minus
+  | { type: 'u-' } // unary minus
 
 const FUNCTIONS = {
   sqrt: (x: number) => Math.sqrt(x),
@@ -68,12 +68,12 @@ function tokenize(s: string): Token[] {
   while (i < s.length) {
     const ch = s[i]
     if (isSpace(ch)) { i++; continue }
-    if (isDigit(ch) || (ch === '.' && isDigit(s[i+1] ?? ''))) {
+    if (isDigit(ch) || (ch === '.' && isDigit(s[i + 1] ?? ''))) {
       let j = i
       while (isDigit(s[j] ?? '')) j++
       if (s[j] === '.') { j++; while (isDigit(s[j] ?? '')) j++ }
       // exponent part like 1e-3
-      if ((s[j] === 'e' || s[j] === 'E') && (isDigit(s[j+1] ?? '') || ((s[j+1] === '+' || s[j+1] === '-') && isDigit(s[j+2] ?? '')))) {
+      if ((s[j] === 'e' || s[j] === 'E') && (isDigit(s[j + 1] ?? '') || ((s[j + 1] === '+' || s[j + 1] === '-') && isDigit(s[j + 2] ?? '')))) {
         j++
         if (s[j] === '+' || s[j] === '-') j++
         while (isDigit(s[j] ?? '')) j++
@@ -98,9 +98,11 @@ function tokenize(s: string): Token[] {
       }
       tokens.push({ type: 'lparen' }); i++; continue
     }
-    if (ch === ')') { tokens.push({ type: 'rparen' }); i++; // possible postfix percent
+    if (ch === ')') {
+      tokens.push({ type: 'rparen' }); i++; // possible postfix percent
       if (s[i] === '%') { tokens.push({ type: 'percent' }); i++ }
-      continue }
+      continue
+    }
     if (isIdentStart(ch)) {
       let j = i
       while (isIdentChar(s[j] ?? '')) j++
@@ -177,7 +179,7 @@ function toRPN(tokens: Token[]): Token[] {
       while (stack.length) {
         const top = stack[stack.length - 1]
         if ((top.type === 'u-' || top.type === 'op' || top.type === 'percent') &&
-            (prec(top) > prec(t) || (prec(top) === prec(t) && !rightAssoc(t)))) {
+          (prec(top) > prec(t) || (prec(top) === prec(t) && !rightAssoc(t)))) {
           output.push(stack.pop() as Token)
         } else break
       }
