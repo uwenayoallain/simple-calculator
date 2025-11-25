@@ -41,11 +41,13 @@ Simple Inline Calculator is a React-based web application providing a Spotlight-
 - Supports unary minus, implicit multiplication (e.g., `2pi`), and `of` keyword (e.g., `45% of 120`)
 - Throws errors on invalid expressions, domain errors, or unknown identifiers
 
-**Theme System** (`src/index.css` and `src/themes.ts`)
-- Dark/light mode toggle with system preference detection fallback
-- Theme persisted to localStorage as `qc-theme`
-- Each theme defines 8 CSS custom properties (--bg-primary, --bg-elevated, --text-primary, --accent, etc.)
+**Theme System** (`src/index.css` and `src/components/QuickCalc.tsx`)
+- Three-way theme toggle: system preference (default) → dark → light → system
+- Theme preference persisted to localStorage as `qc-theme` ('system', 'dark', or 'light')
+- System preference automatically detects and follows OS color scheme
+- Each theme defines CSS custom properties in `src/index.css` (--bg-primary, --bg-elevated, --text-primary, --accent, etc.)
 - Applied via `[data-theme="dark"]` and `[data-theme="light"]` attribute on root element
+- Note: `src/themes.ts` contains legacy theme definitions not currently used
 
 ### Styling
 
@@ -58,9 +60,9 @@ Simple Inline Calculator is a React-based web application providing a Spotlight-
 
 ### Build Configuration
 
-- **Vite:** Uses `rolldown-vite@7.1.14` (overridden in pnpm config)
+- **Vite:** Uses `rolldown-vite@7.2.7` as main dependency with `7.1.14` override in pnpm config
 - **React Compiler:** Enabled via babel-plugin-react-compiler for automatic memoization
-- **TypeScript:** Strict mode, separate configs for app (`tsconfig.app.json`) and node (`tsconfig.node.json`)
+- **TypeScript:** Strict mode with `noUnusedLocals` and `noUnusedParameters`, separate configs for app (`tsconfig.app.json`) and node (`tsconfig.node.json`)
 
 ## Coding Standards
 
@@ -79,7 +81,7 @@ Simple Inline Calculator is a React-based web application providing a Spotlight-
 4. **Copy Flow:** Press Enter when result is visible to copy to clipboard (shows "Copied!" toast)
 5. **Help Modal:** Press `?` to open Quick Reference guide showing all functions and constants
 6. **Shareable State:** URL query parameter `?q=expression` allows sharing calculator state
-7. **Theme Toggle:** Dark/light mode button with system preference fallback
+7. **Theme Toggle:** Three-way cycle button (system → dark → light) with automatic system preference detection
 
 ## Special Notes
 
