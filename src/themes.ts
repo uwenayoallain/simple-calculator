@@ -36,6 +36,6 @@ export const THEMES: ThemeDef[] = [
   }
 ]
 
-export function getThemeById(_id: ThemeId): ThemeDef {
+export function getThemeById(): ThemeDef {
   return THEMES[0]
 }

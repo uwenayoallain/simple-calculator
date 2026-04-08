@@ -1,10 +1,21 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type React from 'react'
-import { evaluate } from '../lib/calc'
 import gsap from 'gsap'
+import { evaluate } from '../lib/calc'
+import {
+  createHistoryEntry,
+  nextHistory,
+  readStoredHistory,
+  type HistoryEntry,
+  writeStoredHistory,
+} from '../lib/history'
 
 type Theme = 'dark' | 'light'
 type ThemePreference = Theme | 'system'
+type ToastState = {
+  title: string
+  description: string
+}
 
 const THEME_KEY = 'qc-theme'
 
@@ -26,8 +37,7 @@ const readQueryFromUrl = () => {
   if (typeof window === 'undefined') return ''
   try {
     const url = new URL(window.location.href)
-    const value = url.searchParams.get('q')
-    return value ?? ''
+    return url.searchParams.get('q') ?? ''
   } catch {
     return ''
   }
@@ -37,27 +47,33 @@ const writeQueryToUrl = (value: string) => {
   if (typeof window === 'undefined') return
   try {
     const url = new URL(window.location.href)
-    if (!value) {
-      url.searchParams.delete('q')
-    } else {
-      url.searchParams.set('q', value)
-    }
+    if (!value) url.searchParams.delete('q')
+    else url.searchParams.set('q', value)
+
     const next = `${url.pathname}${url.search}${url.hash}`
     const current = `${window.location.pathname}${window.location.search}${window.location.hash}`
     if (next !== current) {
       window.history.replaceState(window.history.state, '', next)
     }
-  } catch { }
+  } catch {
+    // Ignore URL sync failures and keep local state authoritative.
+  }
 }
 
-function formatResult(n: number) {
-  if (!isFinite(n)) return '∞'
-  const abs = Math.abs(n)
-  if ((abs !== 0 && (abs < 0.000001 || abs >= 1e9))) {
-    return n.toExponential(8)
+function formatResult(value: number) {
+  if (!isFinite(value)) return '∞'
+  const abs = Math.abs(value)
+  if (abs !== 0 && (abs < 0.000001 || abs >= 1e9)) {
+    return value.toExponential(8)
   }
-  const asFixed = Math.round((n + Number.EPSILON) * 1e10) / 1e10
-  return asFixed.toLocaleString(undefined, { maximumFractionDigits: 10 })
+  const rounded = Math.round((value + Number.EPSILON) * 1e10) / 1e10
+  return rounded.toLocaleString(undefined, { maximumFractionDigits: 10 })
+}
+
+function isStandaloneMode() {
+  if (typeof window === 'undefined') return false
+  const navigatorWithStandalone = window.navigator as Navigator & { standalone?: boolean }
+  return window.matchMedia('(display-mode: standalone)').matches || navigatorWithStandalone.standalone === true
 }
 
 const SunIcon = () => (
@@ -88,40 +104,45 @@ const SystemIcon = () => (
   </svg>
 )
 
+const InstallIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 3v12" />
+    <path d="m7 10 5 5 5-5" />
+    <path d="M5 21h14" />
+  </svg>
+)
+
 export default function QuickCalc() {
   const [query, setQuery] = useState(() => readQueryFromUrl())
-  const [copied, setCopied] = useState(false)
   const [guideOpen, setGuideOpen] = useState(false)
   const [themePreference, setThemePreference] = useState<ThemePreference>(getInitialTheme)
-  const [resolvedTheme, setResolvedTheme] = useState<Theme>(() => {
-    const initial = getInitialTheme()
-    return initial === 'system' ? getSystemTheme() : initial
-  })
+  const [systemTheme, setSystemTheme] = useState<Theme>(() => getSystemTheme())
+  const [history, setHistory] = useState<HistoryEntry[]>(() => readStoredHistory())
+  const [toast, setToast] = useState<ToastState | null>(null)
+  const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null)
+  const [installed, setInstalled] = useState(() => isStandaloneMode())
+
   const hasAnimatedTheme = useRef(false)
   const themeBtnRef = useRef<HTMLButtonElement>(null)
-
   const inputRef = useRef<HTMLInputElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
-  const resultRef = useRef<HTMLDivElement>(null)
   const modalRef = useRef<HTMLDivElement>(null)
   const modalPanelRef = useRef<HTMLDivElement>(null)
 
   const guideId = 'qc-guide-dialog'
   const inputId = 'qc-input'
   const instructionsId = 'qc-input-instructions'
-  const liveResultId = 'qc-live-result'
-  const fallbackHintId = 'qc-fallback-hint'
-  const copyHintId = 'qc-copy-hint'
+  const resultId = 'qc-live-result'
 
   const trimmed = query.trim()
   const expr = trimmed.startsWith('=') ? trimmed.slice(1).trim() : trimmed
   const shouldEval = expr.length > 0
+  const resolvedTheme = themePreference === 'system' ? systemTheme : themePreference
 
   const { ok, result } = useMemo(() => {
     if (!shouldEval) return { ok: false as const, result: undefined }
     try {
-      const v = evaluate(expr)
-      return { ok: true as const, result: v }
+      return { ok: true as const, result: evaluate(expr) }
     } catch {
       return { ok: false as const, result: undefined }
     }
@@ -137,9 +158,13 @@ export default function QuickCalc() {
       ? 'Light'
       : 'System'
   const iconState = themePreference === 'system' ? 'system' : resolvedTheme
-  const describedBy = shouldEval
-    ? (hasResult ? `${instructionsId} ${liveResultId} ${copyHintId}` : `${instructionsId} ${liveResultId}`)
-    : `${instructionsId} ${fallbackHintId}`
+  const canInstall = !installed && installPrompt !== null
+  const installHint = installed
+    ? 'Already installed on this device.'
+    : canInstall
+      ? 'Use the install button when available.'
+      : 'Use the browser install menu or Add to Home Screen.'
+  const describedBy = `${instructionsId}${hasResult ? ` ${resultId}` : ''}`
   const liveResultProps = shouldEval ? { role: 'status' as const, 'aria-live': 'polite' as const, 'aria-atomic': true } : {}
 
   const closeAllOverlays = () => {
@@ -154,9 +179,61 @@ export default function QuickCalc() {
     })
   }
 
+  const flashSpotlight = () => {
+    containerRef.current?.classList.add('qc-copy-flash')
+    window.setTimeout(() => {
+      containerRef.current?.classList.remove('qc-copy-flash')
+    }, 400)
+  }
+
+  const showToast = (title: string, description: string) => {
+    setToast({ title, description })
+  }
+
+  const saveCurrentToHistory = () => {
+    if (!hasResult || typeof result !== 'number') return
+    setHistory(prev => nextHistory(prev, createHistoryEntry(query, result, formattedResult)))
+    showToast('Saved', 'Calculation added to history')
+    flashSpotlight()
+  }
+
+  const handleSelectHistory = (entry: HistoryEntry) => {
+    setQuery(entry.query)
+    inputRef.current?.focus()
+  }
+
+  const handleClearHistory = () => {
+    if (!history.length) return
+    setHistory([])
+    showToast('History cleared', 'Saved calculations removed')
+  }
+
+  const doCopy = async () => {
+    if (!hasResult || typeof result !== 'number') return
+    try {
+      await navigator.clipboard.writeText(String(result))
+      showToast('Copied', 'Result saved to clipboard')
+      flashSpotlight()
+    } catch {
+      showToast('Copy failed', 'Clipboard access is unavailable')
+    }
+  }
+
+  const handleInstall = async () => {
+    if (!installPrompt) {
+      setGuideOpen(true)
+      return
+    }
+
+    await installPrompt.prompt()
+    const choice = await installPrompt.userChoice
+    if (choice.outcome === 'accepted') {
+      showToast('Installing', 'Calculator is being added to your device')
+    }
+    setInstallPrompt(null)
+  }
+
   useEffect(() => {
-    const next = themePreference === 'system' ? getSystemTheme() : themePreference
-    setResolvedTheme(next)
     localStorage.setItem(THEME_KEY, themePreference)
   }, [themePreference])
 
@@ -167,86 +244,88 @@ export default function QuickCalc() {
 
   useEffect(() => {
     if (typeof window === 'undefined') return
-    if (themePreference !== 'system') return
     const media = window.matchMedia('(prefers-color-scheme: dark)')
-    const apply = () => {
-      setResolvedTheme(media.matches ? 'dark' : 'light')
+    const update = () => {
+      setSystemTheme(media.matches ? 'dark' : 'light')
     }
-    apply()
-    media.addEventListener('change', apply)
-    return () => media.removeEventListener('change', apply)
-  }, [themePreference])
+    update()
+    media.addEventListener('change', update)
+    return () => media.removeEventListener('change', update)
+  }, [])
 
   useEffect(() => {
     if (!hasAnimatedTheme.current) {
       hasAnimatedTheme.current = true
       return
     }
+
     const ctx = gsap.context(() => {
       const tl = gsap.timeline()
-      tl.fromTo('.qc-root',
+      tl.fromTo(
+        '.qc-root',
         { filter: 'saturate(0.9) brightness(0.96)' },
-        { filter: 'saturate(1) brightness(1)', duration: 0.45, ease: 'power2.out', clearProps: 'filter' }
+        { filter: 'saturate(1) brightness(1)', duration: 0.45, ease: 'power2.out', clearProps: 'filter' },
       )
-      tl.fromTo('.qc-spotlight',
+      tl.fromTo(
+        '.qc-spotlight',
         { y: 8, opacity: 0.9 },
         { y: 0, opacity: 1, duration: 0.45, ease: 'power3.out', clearProps: 'transform,opacity' },
-        '<0.05'
+        '<0.05',
       )
-      tl.fromTo('.qc-tool-btn',
+      tl.fromTo(
+        '.qc-tool-btn',
         { y: -8, opacity: 0.45 },
         { y: 0, opacity: 1, duration: 0.35, ease: 'power2.out', stagger: 0.05, clearProps: 'transform,opacity' },
-        '<0.05'
+        '<0.05',
       )
       if (themeBtnRef.current) {
-        gsap.fromTo(themeBtnRef.current,
+        gsap.fromTo(
+          themeBtnRef.current,
           { rotate: resolvedTheme === 'dark' ? -6 : 6, scale: 0.94 },
-          { rotate: 0, scale: 1, duration: 0.35, ease: 'power3.out', clearProps: 'transform' }
+          { rotate: 0, scale: 1, duration: 0.35, ease: 'power3.out', clearProps: 'transform' },
         )
-        gsap.fromTo(themeBtnRef.current.querySelector('.qc-theme-pulse'),
+        gsap.fromTo(
+          themeBtnRef.current.querySelector('.qc-theme-pulse'),
           { scale: 0.9, opacity: 0.35 },
-          { scale: 1.15, opacity: 0, duration: 0.6, ease: 'power2.out' }
+          { scale: 1.15, opacity: 0, duration: 0.6, ease: 'power2.out' },
         )
       }
     })
+
     return () => ctx.revert()
   }, [resolvedTheme])
 
   useEffect(() => {
     const ctx = gsap.context(() => {
-      gsap.fromTo('.qc-spotlight',
+      gsap.fromTo(
+        '.qc-spotlight',
         { y: 20, opacity: 0 },
-        {
-          y: 0,
-          opacity: 1,
-          duration: 0.6,
-          ease: 'power3.out',
-          delay: 0.1,
-          clearProps: 'transform,opacity'
-        }
+        { y: 0, opacity: 1, duration: 0.6, ease: 'power3.out', delay: 0.1, clearProps: 'transform,opacity' },
       )
       gsap.from('.qc-footer', {
         opacity: 0,
         duration: 0.5,
         ease: 'power2.out',
-        delay: 0.4
+        delay: 0.4,
       })
       gsap.from('.qc-toolbar', {
         opacity: 0,
         duration: 0.4,
         ease: 'power2.out',
-        delay: 0.5
+        delay: 0.5,
       })
     })
+
     return () => ctx.revert()
   }, [])
 
   useEffect(() => {
     if (guideOpen) {
       gsap.to(modalRef.current, { opacity: 1, duration: 0.2, pointerEvents: 'auto' })
-      gsap.fromTo(modalPanelRef.current,
+      gsap.fromTo(
+        modalPanelRef.current,
         { y: 10, scale: 0.98 },
-        { y: 0, scale: 1, duration: 0.3, ease: 'power3.out' }
+        { y: 0, scale: 1, duration: 0.3, ease: 'power3.out' },
       )
     } else {
       gsap.to(modalRef.current, { opacity: 0, duration: 0.15, pointerEvents: 'none' })
@@ -254,9 +333,7 @@ export default function QuickCalc() {
   }, [guideOpen])
 
   useEffect(() => {
-    const el = inputRef.current
-    if (!el) return
-    el.focus()
+    inputRef.current?.focus()
   }, [])
 
   useEffect(() => {
@@ -274,15 +351,15 @@ export default function QuickCalc() {
   }, [])
 
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && guideOpen) {
-        closeAllOverlays()
-        e.preventDefault()
-        e.stopPropagation()
-      } else if (e.key === '?' && !guideOpen) {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && guideOpen) {
+        setGuideOpen(false)
+        event.preventDefault()
+        event.stopPropagation()
+      } else if (event.key === '?' && !guideOpen) {
         setGuideOpen(true)
-        e.preventDefault()
-        e.stopPropagation()
+        event.preventDefault()
+        event.stopPropagation()
       }
     }
     window.addEventListener('keydown', onKey, true)
@@ -292,41 +369,70 @@ export default function QuickCalc() {
   useEffect(() => {
     const body = document.body
     const prev = body.style.overflow
-    if (anyOverlayOpen) {
-      body.style.overflow = 'hidden'
-    }
+    if (anyOverlayOpen) body.style.overflow = 'hidden'
     return () => {
       body.style.overflow = prev
     }
   }, [anyOverlayOpen])
 
   useEffect(() => {
-    if (!copied) return
-    const t = setTimeout(() => setCopied(false), 2200)
-    return () => clearTimeout(t)
-  }, [copied])
+    if (!toast) return
+    const timeout = window.setTimeout(() => setToast(null), 2200)
+    return () => window.clearTimeout(timeout)
+  }, [toast])
 
-  const doCopy = async () => {
-    if (!ok || typeof result !== 'number') return
-    try {
-      await navigator.clipboard.writeText(String(result))
-      setCopied(true)
-      containerRef.current?.classList.add('qc-copy-flash')
-      setTimeout(() => {
-        containerRef.current?.classList.remove('qc-copy-flash')
-      }, 400)
-    } catch { }
-  }
+  useEffect(() => {
+    writeStoredHistory(history)
+  }, [history])
 
-  const onKeyDown = async (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Escape') {
-      if (anyOverlayOpen) { closeAllOverlays(); e.preventDefault(); return }
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+
+    const syncInstalled = () => {
+      setInstalled(isStandaloneMode())
+    }
+
+    const displayMode = window.matchMedia('(display-mode: standalone)')
+    const onBeforeInstallPrompt = (event: Event) => {
+      event.preventDefault()
+      setInstallPrompt(event as BeforeInstallPromptEvent)
+    }
+    const onInstalled = () => {
+      setInstallPrompt(null)
+      syncInstalled()
+      setToast({
+        title: 'Installed',
+        description: 'Calculator added to your device',
+      })
+    }
+
+    syncInstalled()
+    window.addEventListener('beforeinstallprompt', onBeforeInstallPrompt)
+    window.addEventListener('appinstalled', onInstalled)
+    displayMode.addEventListener('change', syncInstalled)
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', onBeforeInstallPrompt)
+      window.removeEventListener('appinstalled', onInstalled)
+      displayMode.removeEventListener('change', syncInstalled)
+    }
+  }, [])
+
+  const onKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Escape') {
+      if (anyOverlayOpen) {
+        closeAllOverlays()
+        event.preventDefault()
+        return
+      }
       setQuery('')
-      e.preventDefault()
+      event.preventDefault()
       return
     }
-    if (e.key === 'Enter') {
-      await doCopy()
+
+    if (event.key === 'Enter') {
+      saveCurrentToHistory()
+      event.preventDefault()
     }
   }
 
@@ -335,11 +441,24 @@ export default function QuickCalc() {
       <div className="qc-noise" aria-hidden="true" />
 
       <div className="qc-toolbar">
+        {canInstall ? (
+          <button
+            className="qc-tool-btn qc-install-btn"
+            onClick={() => void handleInstall()}
+            aria-label="Install app"
+            title="Install app"
+          >
+            <span className="qc-tool-icon" aria-hidden="true">
+              <InstallIcon />
+            </span>
+          </button>
+        ) : null}
         <button
           className="qc-tool-btn qc-theme-btn"
           ref={themeBtnRef}
           onClick={toggleTheme}
           aria-label={`Theme: ${themeLabel}. Switch to ${nextThemeLabel} mode`}
+          title={`Theme: ${themeLabel}`}
         >
           <span className="qc-theme-pulse" aria-hidden="true" />
           <span className="qc-tool-icon qc-icon-swap" aria-hidden="true">
@@ -353,7 +472,6 @@ export default function QuickCalc() {
               <SystemIcon />
             </span>
           </span>
-          <span className="qc-tool-label">{themeLabel}</span>
         </button>
         <button
           className="qc-tool-btn qc-tool-btn-icon"
@@ -362,6 +480,7 @@ export default function QuickCalc() {
           aria-expanded={guideOpen}
           aria-controls={guideId}
           aria-label="Help"
+          title="Help"
         >
           <span aria-hidden="true">?</span>
         </button>
@@ -376,12 +495,12 @@ export default function QuickCalc() {
           role="dialog"
           aria-modal="true"
           aria-labelledby="qc-guide-title"
-          onClick={(e) => e.stopPropagation()}
+          onClick={(event) => event.stopPropagation()}
         >
           <button className="qc-modal-close-icon" onClick={closeAllOverlays} aria-label="Close">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18"></line>
-              <line x1="6" y1="6" x2="18" y2="18"></line>
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
             </svg>
           </button>
           <div className="qc-modal-header">
@@ -390,30 +509,29 @@ export default function QuickCalc() {
           </div>
           <div className="qc-guide-grid">
             <div>
-              <h3>Constants</h3>
+              <h3>Flow</h3>
               <ul>
-                <li><code>pi</code> ≈ 3.14159</li>
-                <li><code>tau</code> = 2π</li>
-                <li><code>e</code> ≈ 2.71828</li>
-                <li><code>phi</code> ≈ 1.61803</li>
-              </ul>
-            </div>
-            <div>
-              <h3>Functions</h3>
-              <ul>
-                <li><code>sqrt</code> <code>cbrt</code></li>
-                <li><code>sin</code> <code>cos</code> <code>tan</code></li>
-                <li><code>log</code> <code>ln</code> <code>exp</code></li>
-                <li><code>abs</code> <code>floor</code> <code>ceil</code></li>
+                <li>Paste formatted numbers like <code>1,000,000</code></li>
+                <li>Press <kbd>Enter</kbd> to save</li>
+                <li>Click a saved row to reuse it</li>
+                <li>Use <code>Copy</code> for the raw result</li>
               </ul>
             </div>
             <div>
               <h3>Examples</h3>
               <ul>
-                <li><code>2pi</code> <code>3(4+5)</code></li>
-                <li><code>deg(pi)</code></li>
-                <li><code>sqrt(2)^2</code></li>
-                <li><code>45% of 120</code></li>
+                <li><code>1,234.56 + 7,890.01</code></li>
+                <li><code>2(1,000)</code></li>
+                <li><code>45% of 120,000</code></li>
+                <li><code>sqrt(10,000)</code></li>
+              </ul>
+            </div>
+            <div>
+              <h3>Install</h3>
+              <ul>
+                <li>{installHint}</li>
+                <li>Chrome or Edge: install button or browser install menu</li>
+                <li>Safari on iPhone or iPad: Share, then Add to Home Screen</li>
               </ul>
             </div>
           </div>
@@ -423,14 +541,18 @@ export default function QuickCalc() {
       <main className="qc-main" aria-hidden={anyOverlayOpen}>
         <div className="qc-spotlight" ref={containerRef}>
           <label className="qc-sr-only" htmlFor={inputId}>Calculator</label>
+          <p className="qc-sr-only" id={instructionsId}>
+            Type or paste a calculation. Press Enter to save valid results into history.
+          </p>
+
           <div className="qc-input-wrapper">
             <input
               ref={inputRef}
               id={inputId}
               className="qc-input"
-              placeholder="Type to calculate..."
+              placeholder="Type or paste to calculate..."
               value={query}
-              onChange={(e) => setQuery(e.target.value)}
+              onChange={(event) => setQuery(event.target.value)}
               onKeyDown={onKeyDown}
               spellCheck={false}
               autoCapitalize="off"
@@ -444,23 +566,51 @@ export default function QuickCalc() {
             <div className="qc-result-inner">
               <div className="qc-divider" aria-hidden="true" />
               <div className="qc-result" {...liveResultProps}>
-                <div className="qc-result-value" id={liveResultId} ref={resultRef}>{formattedResult}</div>
-                <button className="qc-result-sub" id={copyHintId} onClick={doCopy} type="button">Copy</button>
+                <div className="qc-result-value" id={resultId}>{formattedResult}</div>
+                <button className="qc-result-sub" onClick={() => void doCopy()} type="button">Copy</button>
               </div>
             </div>
           </div>
+
+          {history.length ? (
+            <div className="qc-history-shell">
+              <div className="qc-divider" aria-hidden="true" />
+              <div className="qc-history-header">
+                <button
+                  className="qc-history-clear"
+                  type="button"
+                  onClick={handleClearHistory}
+                >
+                  Clear
+                </button>
+              </div>
+              <div className="qc-history-list" role="list" aria-label="Calculation history">
+                {history.map((entry) => (
+                  <button
+                    key={entry.id}
+                    className="qc-history-item"
+                    type="button"
+                    onClick={() => handleSelectHistory(entry)}
+                  >
+                    <span className="qc-history-query">{entry.query}</span>
+                    <span className="qc-history-result">{entry.result}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : null}
         </div>
       </main>
 
-      <div className={`qc-toast ${copied ? 'show' : ''}`} role="status" aria-live="polite">
+      <div className={`qc-toast ${toast ? 'show' : ''}`} role="status" aria-live="polite">
         <div className="qc-toast-icon" aria-hidden="true">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="20 6 9 17 4 12"></polyline>
+            <polyline points="20 6 9 17 4 12" />
           </svg>
         </div>
         <div className="qc-toast-text">
-          <span className="qc-toast-title">Copied</span>
-          <span className="qc-toast-sub">Result saved to clipboard</span>
+          <span className="qc-toast-title">{toast?.title}</span>
+          <span className="qc-toast-sub">{toast?.description}</span>
         </div>
         <div className="qc-toast-bar" aria-hidden="true" />
       </div>

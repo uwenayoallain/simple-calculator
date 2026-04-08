@@ -69,19 +69,11 @@ function tokenize(s: string): Token[] {
     const ch = s[i]
     if (isSpace(ch)) { i++; continue }
     if (isDigit(ch) || (ch === '.' && isDigit(s[i + 1] ?? ''))) {
-      let j = i
-      while (isDigit(s[j] ?? '')) j++
-      if (s[j] === '.') { j++; while (isDigit(s[j] ?? '')) j++ }
-      // exponent part like 1e-3
-      if ((s[j] === 'e' || s[j] === 'E') && (isDigit(s[j + 1] ?? '') || ((s[j + 1] === '+' || s[j + 1] === '-') && isDigit(s[j + 2] ?? '')))) {
-        j++
-        if (s[j] === '+' || s[j] === '-') j++
-        while (isDigit(s[j] ?? '')) j++
-      }
-      const num = Number(s.slice(i, j))
+      const { end, normalized } = readNumberToken(s, i)
+      const num = Number(normalized)
       if (!isFinite(num)) throw new Error('Invalid number')
       tokens.push({ type: 'num', value: num })
-      i = j
+      i = end
       // postfix percent directly after number
       if (s[i] === '%') { tokens.push({ type: 'percent' }); i++ }
       continue
@@ -146,6 +138,55 @@ function tokenize(s: string): Token[] {
     out.push(t)
   }
   return out
+}
+
+function readNumberToken(source: string, start: number) {
+  let end = start
+  let integerPart = ''
+  let fractionalPart = ''
+
+  if (source[start] === '.') {
+    end++
+  } else {
+    while (isDigit(source[end] ?? '') || source[end] === ',') {
+      integerPart += source[end]
+      end++
+    }
+    if (integerPart.includes(',') && !/^\d{1,3}(,\d{3})+$/.test(integerPart)) {
+      throw new Error('Invalid number grouping')
+    }
+  }
+
+  if (source[end] === '.') {
+    fractionalPart += '.'
+    end++
+    while (isDigit(source[end] ?? '')) {
+      fractionalPart += source[end]
+      end++
+    }
+  }
+
+  if ((source[end] === 'e' || source[end] === 'E') && (isDigit(source[end + 1] ?? '') || ((source[end + 1] === '+' || source[end + 1] === '-') && isDigit(source[end + 2] ?? '')))) {
+    let exponent = source[end]
+    end++
+    if (source[end] === '+' || source[end] === '-') {
+      exponent += source[end]
+      end++
+    }
+    while (isDigit(source[end] ?? '')) {
+      exponent += source[end]
+      end++
+    }
+    return {
+      end,
+      normalized: `${integerPart.replaceAll(',', '')}${fractionalPart}${exponent}`,
+    }
+  }
+
+  return {
+    end,
+    normalized: `${integerPart.replaceAll(',', '')}${fractionalPart}`,
+  }
 }
 
 function toRPN(tokens: Token[]): Token[] {
